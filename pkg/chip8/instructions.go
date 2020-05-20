@@ -44,7 +44,7 @@ func (c *chip8) decodeExecute(op uint16) error {
 	case op&0xF000 == 0x1000:
 		c.jump(nnn) // 1nnn
 	case op&0xF000 == 0x2000:
-		c.call(nnn) // 2nnn
+		return c.call(nnn) // 2nnn
 	case op&0xF000 == 0x3000:
 		c.skipIfVx(x, kk) // 3xkk
 	case op&0xF000 == 0x4000:
@@ -60,13 +60,13 @@ func (c *chip8) decodeExecute(op uint16) error {
 	case op&0xF00F == 0x8001:
 		c.setVxOrVy(x, y) // 8xy1
 	case op&0xF00F == 0x8002:
-		c.setVxAndVy(x, y) //8xy2
+		c.setVxAndVy(x, y) // 8xy2
 	case op&0xF00F == 0x8003:
-		c.setVxXorVy(x, y) //8xy3
+		c.setVxXorVy(x, y) // 8xy3
 	case op&0xF00F == 0x8004:
-		c.addVxVy(x, y) //8xy4
+		c.addVxVy(x, y) // 8xy4
 	case op&0xF00F == 0x8005:
-		c.subVxVy(x, y) //8xy5
+		c.subVxVy(x, y) // 8xy5
 	case op&0xF00F == 0x8006:
 		c.shrVx(x) // 8xy6
 	case op&0xF00F == 0x8007:
@@ -104,7 +104,7 @@ func (c *chip8) decodeExecute(op uint16) error {
 	case op&0xF0FF == 0xF055:
 		c.writeRegs(x) // Fx55
 	case op&0xF0FF == 0xF065:
-		c.readRegs(x) // Fx55
+		c.readRegs(x) // Fx65
 	default:
 		return fmt.Errorf("opcode not supported: 0x%04X", op)
 	}
