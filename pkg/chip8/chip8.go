@@ -1,7 +1,20 @@
 package chip8
 
 import (
+	"errors"
 	"math/rand"
+	"time"
+)
+
+const (
+	// FramePerSecond is the number of Frame update in Hertz
+	FramePerSecond = 60
+	// CyclePerSecond is the number of CPU cycle in Hertz
+	CyclePerSecond = 600
+	// DisplayWidth is the number of pixels in a row
+	DisplayWidth = 64
+	// DisplayHeight is the number of pixels in a column
+	DisplayHeight = 32
 )
 
 // chip8 is based on Cowgod's Chip-8 Technical Reference v1.0
@@ -79,8 +92,88 @@ type chip8 struct {
 	// +----------------+
 	//
 	// Each bit will encode the status (on/off) of the pixel, hence the uint64 per line.
-	display [32]uint64
+	display [DisplayHeight]uint64
 
 	// Chip-8 has an instruction that generate a random number.
 	rand *rand.Rand
+}
+
+// New return a fully initialized instance of the CHIP-8 system.
+func New() *chip8 {
+	m := &chip8{
+		pc: 0x200,
+		memory: [4096]byte{
+			// Programs may also refer to a group of sprites representing the hexadecimal digits 0 through F.
+			// These sprites are 5 bytes long, or 8x5 pixels.
+			// The data should be stored in the interpreter area of Chip-8 memory (0x000 to 0x1FF).
+			0xF0, 0x90, 0x90, 0x90, 0xF0, //0
+			0x20, 0x60, 0x20, 0x20, 0x70, //1
+			0xF0, 0x10, 0xF0, 0x80, 0xF0, //2
+			0xF0, 0x10, 0xF0, 0x10, 0xF0, //3
+			0x90, 0x90, 0xF0, 0x10, 0x10, //4
+			0xF0, 0x80, 0xF0, 0x10, 0xF0, //5
+			0xF0, 0x80, 0xF0, 0x90, 0xF0, //6
+			0xF0, 0x10, 0x20, 0x40, 0x40, //7
+			0xF0, 0x90, 0xF0, 0x90, 0xF0, //8
+			0xF0, 0x90, 0xF0, 0x10, 0xF0, //9
+			0xF0, 0x90, 0xF0, 0x90, 0x90, //A
+			0xE0, 0x90, 0xE0, 0x90, 0xE0, //B
+			0xF0, 0x80, 0x80, 0x80, 0xF0, //C
+			0xE0, 0x90, 0x90, 0x90, 0xE0, //D
+			0xF0, 0x80, 0xF0, 0x80, 0xF0, //E
+			0xF0, 0x80, 0xF0, 0x80, 0x80, //F
+
+		},
+		rand: rand.New(rand.NewSource(time.Now().UTC().UnixNano())),
+	}
+	return m
+}
+
+// GetNextFrame is cool
+func (c *chip8) GetNextFrame() ([]uint32, error) {
+	for i := 0; i < CyclePerSecond/FramePerSecond; i++ {
+		op, err := c.fetch()
+		if err != nil {
+			return nil, err
+		}
+
+		if err := c.decodeExecute(op); err != nil {
+			return nil, err
+		}
+	}
+
+	if c.dt != 0 {
+		c.dt--
+	}
+
+	if c.st != 0 {
+		c.st--
+	}
+
+	return c.mapGraphic(), nil
+}
+
+func (c *chip8) mapGraphic() []uint32 {
+	fb := make([]uint32, DisplayWidth*DisplayHeight)
+	for y, row := range c.display {
+		for x := 0; x < DisplayWidth; x++ {
+			if row&(1<<(63-x)) > 0 {
+				fb[x+(y*DisplayWidth)] = 0xF2F4F3
+			} else {
+				fb[x+(y*DisplayWidth)] = 0x00171F
+			}
+		}
+	}
+
+	return fb
+}
+
+// LoadGame load game data in the memory.
+// If the data cannot fit in the memory it will return an error.
+func (c *chip8) LoadGame(data []byte) error {
+	if len(data) >= len(c.memory)-int(c.pc) {
+		return errors.New("the ROM cannot fit in memory")
+	}
+	copy(c.memory[c.pc:], data)
+	return nil
 }

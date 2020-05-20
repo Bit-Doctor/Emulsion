@@ -266,8 +266,8 @@ func (c *chip8) rndVx(x, kk byte) {
 // If the sprite is positioned so part of it is outside the coordinates of the display, it wraps around to the opposite side of the screen
 func (c *chip8) drawSprite(x, y, n byte) {
 	sprite := c.memory[c.i : c.i+uint16(n)]
-	posX := c.v[x] % 64 // wraps around to the opposite side of the screen
-	posY := c.v[y] % 32 // wraps around to the opposite side of the screen
+	posX := c.v[x] % DisplayWidth  // wraps around to the opposite side of the screen
+	posY := c.v[y] % DisplayHeight // wraps around to the opposite side of the screen
 	collision := false
 
 	for i := range sprite {
@@ -281,7 +281,7 @@ func (c *chip8) drawSprite(x, y, n byte) {
 			collision = true
 		}
 
-		posY = (posY + 1) % 32
+		posY = (posY + 1) % DisplayHeight
 	}
 
 	c.v[0xF] = 0
