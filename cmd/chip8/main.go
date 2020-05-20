@@ -5,7 +5,6 @@ import (
 	"io/ioutil"
 	"os"
 	"time"
-	"unsafe"
 
 	"github.com/Bit-Doctor/emulation/pkg/chip8"
 	"github.com/veandco/go-sdl2/sdl"
@@ -38,6 +37,12 @@ func main() {
 	defer renderer.Destroy()
 	renderer.SetLogicalSize(chip8.DisplayWidth, chip8.DisplayHeight)
 
+	texture, err := renderer.CreateTexture(sdl.PIXELFORMAT_ARGB8888, sdl.TEXTUREACCESS_STREAMING, chip8.DisplayWidth, chip8.DisplayHeight)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, "cannot create a texture: ", err)
+	}
+	defer texture.Destroy()
+
 	vm := chip8.New()
 	data, err := ioutil.ReadFile(os.Args[1])
 	if err != nil {
@@ -65,41 +70,17 @@ func main() {
 			}
 		}
 
+		renderer.Clear()
 		fb, err := vm.GetNextFrame()
 		if err != nil {
 			fmt.Fprintln(os.Stderr, "system errored: ", err)
 		}
-
-		if err := draw(renderer, fb); err != nil {
+		texture.UpdateRGBA(nil, fb, chip8.DisplayWidth)
+		if err := renderer.Copy(texture, nil, nil); err != nil {
 			fmt.Fprintln(os.Stderr, "cannot draw frame: ", err)
 		}
+		renderer.Present()
 
 		time.Sleep(time.Second/60 - time.Since(start))
 	}
-}
-
-func draw(renderer *sdl.Renderer, fb []uint32) error {
-	renderer.Clear()
-	surface, err := sdl.CreateRGBSurfaceWithFormatFrom(unsafe.Pointer(&fb[0]), chip8.DisplayWidth, chip8.DisplayHeight, 32, chip8.DisplayWidth*4, sdl.PIXELFORMAT_RGB888)
-	if err != nil {
-		return err
-	}
-
-	texture, err := renderer.CreateTextureFromSurface(surface)
-	if err != nil {
-		return err
-	}
-
-	if err := renderer.Copy(texture, nil, nil); err != nil {
-		return err
-	}
-
-	surface.Free()
-	if err := texture.Destroy(); err != nil {
-		return err
-	}
-
-	renderer.Present()
-
-	return nil
 }
