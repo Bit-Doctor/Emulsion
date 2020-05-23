@@ -2,15 +2,22 @@ package chip8
 
 import (
 	"errors"
+	"math"
 	"math/rand"
 	"time"
 )
 
 const (
 	// FramePerSecond is the number of Frame update in Hertz
-	FramePerSecond = 60
+	FramePerSecond = 60.0
 	// CyclePerSecond is the number of CPU cycle in Hertz
-	CyclePerSecond = 600
+	CyclePerSecond = 600.0
+	//CyclePerFrame is the number of CPU cycle per frame
+	CyclePerFrame = CyclePerSecond / FramePerSecond
+	// SamplingRate is the number of audio sample in Hertz
+	SamplingRate = 44100.0
+	// SamplePerFrame is the number of audio sample per frame
+	SamplePerFrame = SamplingRate / FramePerSecond
 	// DisplayWidth is the number of pixels in a row
 	DisplayWidth = 64
 	// DisplayHeight is the number of pixels in a column
@@ -130,18 +137,7 @@ func New() *chip8 {
 }
 
 // GetNextFrame is cool
-func (c *chip8) GetNextFrame() ([]uint32, error) {
-	for i := 0; i < CyclePerSecond/FramePerSecond; i++ {
-		op, err := c.fetch()
-		if err != nil {
-			return nil, err
-		}
-
-		if err := c.decodeExecute(op); err != nil {
-			return nil, err
-		}
-	}
-
+func (c *chip8) GetNextFrame() ([]uint32, []int16, error) {
 	if c.dt != 0 {
 		c.dt--
 	}
@@ -150,7 +146,18 @@ func (c *chip8) GetNextFrame() ([]uint32, error) {
 		c.st--
 	}
 
-	return c.mapGraphic(), nil
+	for i := 0; i < CyclePerFrame; i++ {
+		op, err := c.fetch()
+		if err != nil {
+			return nil, nil, err
+		}
+
+		if err := c.decodeExecute(op); err != nil {
+			return nil, nil, err
+		}
+	}
+
+	return c.mapGraphic(), c.mapAudio(), nil
 }
 
 func (c *chip8) mapGraphic() []uint32 {
@@ -166,6 +173,24 @@ func (c *chip8) mapGraphic() []uint32 {
 	}
 
 	return fb
+}
+
+func (c *chip8) mapAudio() []int16 {
+	const tone = 480.0
+	const deltaPhase = 2 * math.Pi * tone / SamplingRate
+	sb := make([]int16, SamplePerFrame*2)
+
+	if c.st > 0 {
+		var phase float64
+		for i := 0; i < len(sb); i += 2 {
+			phase += deltaPhase
+			sample := int16(math.Sin(phase) * math.MaxInt16)
+			sb[i] = sample   // Left channel
+			sb[i+1] = sample // Right channel
+		}
+	}
+
+	return sb
 }
 
 // LoadGame load game data in the memory.

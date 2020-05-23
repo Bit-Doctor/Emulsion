@@ -4,7 +4,9 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
+	"reflect"
 	"time"
+	"unsafe"
 
 	"github.com/Bit-Doctor/emulation/pkg/chip8"
 	"github.com/veandco/go-sdl2/sdl"
@@ -35,13 +37,25 @@ func main() {
 		os.Exit(-1)
 	}
 	defer renderer.Destroy()
-	renderer.SetLogicalSize(chip8.DisplayWidth, chip8.DisplayHeight)
 
 	texture, err := renderer.CreateTexture(sdl.PIXELFORMAT_ARGB8888, sdl.TEXTUREACCESS_STREAMING, chip8.DisplayWidth, chip8.DisplayHeight)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, "cannot create a texture: ", err)
 	}
 	defer texture.Destroy()
+
+	wants := &sdl.AudioSpec{
+		Freq:     chip8.SamplingRate,
+		Format:   sdl.AUDIO_S16SYS,
+		Channels: 2,
+		Samples:  1024,
+	}
+	devID, err := sdl.OpenAudioDevice("", false, wants, nil, 0)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, "cannot open audio device: ", err)
+	}
+	defer sdl.CloseAudioDevice(devID)
+	sdl.PauseAudioDevice(devID, false)
 
 	vm := chip8.New()
 	data, err := ioutil.ReadFile(os.Args[1])
@@ -70,17 +84,28 @@ func main() {
 			}
 		}
 
-		renderer.Clear()
-		fb, err := vm.GetNextFrame()
+		fb, sb, err := vm.GetNextFrame()
 		if err != nil {
 			fmt.Fprintln(os.Stderr, "system errored: ", err)
 		}
+
+		renderer.Clear()
 		texture.UpdateRGBA(nil, fb, chip8.DisplayWidth)
 		if err := renderer.Copy(texture, nil, nil); err != nil {
 			fmt.Fprintln(os.Stderr, "cannot draw frame: ", err)
 		}
+
 		renderer.Present()
 
-		time.Sleep(time.Second/60 - time.Since(start))
+		var data []byte
+		sh := (*reflect.SliceHeader)(unsafe.Pointer(&data))
+		sh.Len = len(sb) * 2
+		sh.Cap = len(sb) * 2
+		sh.Data = uintptr(unsafe.Pointer(&sb[0]))
+		if err := sdl.QueueAudio(devID, data); err != nil {
+			fmt.Fprintln(os.Stderr, "cannot queue audio: ", err)
+		}
+
+		time.Sleep(time.Second/chip8.FramePerSecond - time.Since(start))
 	}
 }
