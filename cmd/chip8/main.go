@@ -56,6 +56,7 @@ func main() {
 		os.Exit(-1)
 	}
 	defer renderer.Destroy()
+	renderer.SetLogicalSize(chip8.DisplayWidth, chip8.DisplayHeight)
 
 	texture, err := renderer.CreateTexture(sdl.PIXELFORMAT_ARGB8888, sdl.TEXTUREACCESS_STREAMING, chip8.DisplayWidth, chip8.DisplayHeight)
 	if err != nil {
@@ -88,10 +89,9 @@ func main() {
 		os.Exit(-1)
 	}
 
+	var input [16]bool
 	running := true
 	for running {
-		var input [16]bool
-
 		start := time.Now()
 		for event := sdl.PollEvent(); event != nil; event = sdl.PollEvent() {
 			switch event := event.(type) {
