@@ -19,14 +19,17 @@ import (
 )
 
 var (
-	vm *chip8.Chip8
-
 	envCb              C.retro_environment_t
 	videoRefreshCb     C.retro_video_refresh_t
 	audioSampleCb      C.retro_audio_sample_t
 	audioSampleBatchCb C.retro_audio_sample_batch_t
 	inputPollCb        C.retro_input_poll_t
 	inputStateCb       C.retro_input_state_t
+)
+
+var (
+	vm     *chip8.Chip8
+	toFree []unsafe.Pointer
 )
 
 //export retro_set_environment
@@ -52,6 +55,11 @@ func retro_set_environment(cb C.retro_environment_t) {
 		{description: C.CString("F"), device: C.RETRO_DEVICE_JOYPAD, id: C.RETRO_DEVICE_ID_JOYPAD_L3},
 		{},
 	}
+
+	for _, d := range descriptors {
+		toFree = append(toFree, unsafe.Pointer(d.description))
+	}
+
 	environment(C.RETRO_ENVIRONMENT_SET_INPUT_DESCRIPTORS, unsafe.Pointer(&descriptors[0]))
 }
 
@@ -78,6 +86,10 @@ func retro_init() {
 //export retro_deinit
 func retro_deinit() {
 	vm = nil
+
+	for _, d := range toFree {
+		C.free(d)
+	}
 }
 
 //export retro_api_version
@@ -85,14 +97,15 @@ func retro_api_version() C.unsigned { return C.RETRO_API_VERSION }
 
 //export retro_get_system_info
 func retro_get_system_info(info *C.struct_retro_system_info) {
-	*info = C.struct_retro_system_info{
-		library_name:     C.CString("CHIP-8"),
-		library_version:  C.CString("v0.1"),
-		need_fullpath:    false,
-		valid_extensions: C.CString("ch8"),
-	}
+	info.library_name = C.CString("CHIP-8")
+	info.library_version = C.CString("v0.1")
+	info.need_fullpath = false
+	info.valid_extensions = C.CString("ch8")
 
-	// format := make([]byte, 1)
+	toFree = append(toFree, unsafe.Pointer(info.library_name))
+	toFree = append(toFree, unsafe.Pointer(info.library_version))
+	toFree = append(toFree, unsafe.Pointer(info.valid_extensions))
+
 	format := C.RETRO_PIXEL_FORMAT_XRGB8888
 	environment(C.RETRO_ENVIRONMENT_SET_PIXEL_FORMAT, unsafe.Pointer(&format))
 }
