@@ -136,7 +136,7 @@ func New() *chip8 {
 	return m
 }
 
-// GetNextFrame is cool
+// GetNextFrame takes in an input state run for one frame and return the video and audio data.
 func (c *chip8) GetNextFrame(inputs [16]bool) ([]uint32, []int16, error) {
 	c.keypad = inputs
 
