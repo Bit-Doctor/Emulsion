@@ -3,6 +3,7 @@ package chip8
 import (
 	"errors"
 	"fmt"
+	"math/bits"
 )
 
 // Fetch return the next opCode and increment the program counter.
@@ -271,8 +272,8 @@ func (c *chip8) drawSprite(x, y, n byte) {
 	collision := false
 
 	for i := range sprite {
-		row := uint64(sprite[i]) << (64 - 8) // Move sprite to the MSB
-		row = row>>posX | row<<(64-posX)     // Move sprite to correct position and wrap around
+		row := uint64(sprite[i])                     // Move sprite to the MSB
+		row = bits.RotateLeft64(row, int(64-8-posX)) // Move sprite to correct position and wrap around
 
 		or := c.display[posY] | row
 		c.display[posY] ^= row
