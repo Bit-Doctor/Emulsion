@@ -12,6 +12,25 @@ import (
 	"github.com/veandco/go-sdl2/sdl"
 )
 
+var keyMap = map[sdl.Scancode]byte{
+	sdl.SCANCODE_X: 0x0,
+	sdl.SCANCODE_1: 0x1,
+	sdl.SCANCODE_2: 0x2,
+	sdl.SCANCODE_3: 0x3,
+	sdl.SCANCODE_Q: 0x4,
+	sdl.SCANCODE_W: 0x5,
+	sdl.SCANCODE_E: 0x6,
+	sdl.SCANCODE_A: 0x7,
+	sdl.SCANCODE_S: 0x8,
+	sdl.SCANCODE_D: 0x9,
+	sdl.SCANCODE_Z: 0xA,
+	sdl.SCANCODE_C: 0xB,
+	sdl.SCANCODE_4: 0xC,
+	sdl.SCANCODE_R: 0xD,
+	sdl.SCANCODE_F: 0xE,
+	sdl.SCANCODE_V: 0xF,
+}
+
 func main() {
 	if len(os.Args) != 2 {
 		fmt.Fprintf(os.Stderr, "Usage: %v <file>\n", os.Args[0])
@@ -71,20 +90,23 @@ func main() {
 
 	running := true
 	for running {
+		var input [16]bool
+
 		start := time.Now()
 		for event := sdl.PollEvent(); event != nil; event = sdl.PollEvent() {
 			switch event := event.(type) {
 			case *sdl.QuitEvent:
 				running = false
 			case *sdl.KeyboardEvent:
-				switch event.Keysym.Scancode {
-				case sdl.SCANCODE_ESCAPE:
+				if event.Keysym.Scancode == sdl.SCANCODE_ESCAPE {
 					running = false
+				} else if key, ok := keyMap[event.Keysym.Scancode]; ok {
+					input[key] = event.Type == sdl.KEYDOWN
 				}
 			}
 		}
 
-		fb, sb, err := vm.GetNextFrame()
+		fb, sb, err := vm.GetNextFrame(input)
 		if err != nil {
 			fmt.Fprintln(os.Stderr, "system errored: ", err)
 		}

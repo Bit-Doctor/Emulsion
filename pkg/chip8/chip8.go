@@ -137,7 +137,9 @@ func New() *chip8 {
 }
 
 // GetNextFrame is cool
-func (c *chip8) GetNextFrame() ([]uint32, []int16, error) {
+func (c *chip8) GetNextFrame(inputs [16]bool) ([]uint32, []int16, error) {
+	c.keypad = inputs
+
 	if c.dt != 0 {
 		c.dt--
 	}
