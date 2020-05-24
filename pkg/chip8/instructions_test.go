@@ -28,7 +28,7 @@ func Test_chip8_fetch(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			c := &chip8{
+			c := &Chip8{
 				memory: tt.fields.memory,
 				pc:     tt.fields.pc,
 			}
@@ -129,7 +129,7 @@ func Test_chip8_decodeExecute(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			c := &chip8{
+			c := &Chip8{
 				memory:  tt.fields.memory,
 				v:       tt.fields.v,
 				i:       tt.fields.i,

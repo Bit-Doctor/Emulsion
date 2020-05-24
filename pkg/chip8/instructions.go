@@ -10,7 +10,7 @@ import (
 // All instructions are 2 bytes long and are stored most-significant-byte first.
 // In memory, the first byte of each instruction should be located at an even addresses.
 // If a program includes sprite data, it should be padded so any instructions following it will be properly situated in RAM.
-func (c *chip8) fetch() (uint16, error) {
+func (c *Chip8) fetch() (uint16, error) {
 	if int(c.pc) == len(c.memory) {
 		return 0x0000, errors.New("segmentation fault")
 	}
@@ -23,7 +23,7 @@ func (c *chip8) fetch() (uint16, error) {
 
 // Decode and execute the provided opCode.
 // The original implementation of the Chip-8 language includes 36 different instructions.
-func (c *chip8) decodeExecute(op uint16) error {
+func (c *Chip8) decodeExecute(op uint16) error {
 	// nnn or addr - A 12-bit value, the lowest 12 bits of the instruction
 	nnn := op & 0xFFF
 	// kk or byte - An 8-bit value, the lowest 8 bits of the instruction
@@ -113,14 +113,14 @@ func (c *chip8) decodeExecute(op uint16) error {
 }
 
 // Clear the display.
-func (c *chip8) cls() {
+func (c *Chip8) cls() {
 	for i := range c.display {
 		c.display[i] = 0
 	}
 }
 
 // Return from a subroutine.
-func (c *chip8) ret() error {
+func (c *Chip8) ret() error {
 	if c.sp == 0 {
 		return errors.New("stack underflow")
 	}
@@ -132,15 +132,15 @@ func (c *chip8) ret() error {
 
 // Jump to a machine code routine at nnn.
 // This instruction is only used on the old computers on which Chip-8 was originally implemented. It is ignored by modern interpreters.
-func (c *chip8) sys() {}
+func (c *Chip8) sys() {}
 
 // Jump to address.
-func (c *chip8) jump(addr uint16) {
+func (c *Chip8) jump(addr uint16) {
 	c.pc = addr
 }
 
 // Call a subroutine at address.
-func (c *chip8) call(addr uint16) error {
+func (c *Chip8) call(addr uint16) error {
 	if int(c.sp) == len(c.stack) {
 		return errors.New("stack overflow")
 	}
@@ -152,58 +152,58 @@ func (c *chip8) call(addr uint16) error {
 }
 
 // Skip next instruction if Vx = kk.
-func (c *chip8) skipIfVx(x, kk byte) {
+func (c *Chip8) skipIfVx(x, kk byte) {
 	if c.v[x] == kk {
 		c.pc += 2
 	}
 }
 
 // Skip next instruction if Vx != kk.
-func (c *chip8) skipIfNotVx(x, kk byte) {
+func (c *Chip8) skipIfNotVx(x, kk byte) {
 	if c.v[x] != kk {
 		c.pc += 2
 	}
 }
 
 // Skip next instruction if Vx = Vy.
-func (c *chip8) skipIfVxVy(x, y byte) {
+func (c *Chip8) skipIfVxVy(x, y byte) {
 	if c.v[x] == c.v[y] {
 		c.pc += 2
 	}
 }
 
 // Set Vx = kk.
-func (c *chip8) setVx(x, kk byte) {
+func (c *Chip8) setVx(x, kk byte) {
 	c.v[x] = kk
 }
 
 // Set Vx = Vx + kk.
-func (c *chip8) addVx(x, kk byte) {
+func (c *Chip8) addVx(x, kk byte) {
 	c.v[x] += kk
 }
 
 // Set Vx = Vy.
-func (c *chip8) setVxVy(x, y byte) {
+func (c *Chip8) setVxVy(x, y byte) {
 	c.v[x] = c.v[y]
 }
 
 // Set Vx = Vx OR Vy.
-func (c *chip8) setVxOrVy(x, y byte) {
+func (c *Chip8) setVxOrVy(x, y byte) {
 	c.v[x] |= c.v[y]
 }
 
 // Set Vx = Vx AND Vy.
-func (c *chip8) setVxAndVy(x, y byte) {
+func (c *Chip8) setVxAndVy(x, y byte) {
 	c.v[x] &= c.v[y]
 }
 
 // Set Vx = Vx XOR Vy.
-func (c *chip8) setVxXorVy(x, y byte) {
+func (c *Chip8) setVxXorVy(x, y byte) {
 	c.v[x] ^= c.v[y]
 }
 
 // Set Vx = Vx + Vy, set VF = carry.
-func (c *chip8) addVxVy(x, y byte) {
+func (c *Chip8) addVxVy(x, y byte) {
 	c.v[x] += c.v[y]
 	c.v[0xF] = 0
 	if c.v[x] < c.v[y] {
@@ -212,7 +212,7 @@ func (c *chip8) addVxVy(x, y byte) {
 }
 
 // Set Vx = Vx - Vy, set VF = NOT borrow.
-func (c *chip8) subVxVy(x, y byte) {
+func (c *Chip8) subVxVy(x, y byte) {
 	c.v[0xF] = 1
 	if c.v[x] < c.v[y] {
 		c.v[0xF] = 0
@@ -221,13 +221,13 @@ func (c *chip8) subVxVy(x, y byte) {
 }
 
 // Set Vx = Vx SHR 1, set VF = LSB of Vx.
-func (c *chip8) shrVx(x byte) {
+func (c *Chip8) shrVx(x byte) {
 	c.v[0xF] = c.v[x] & 1
 	c.v[x] >>= 1
 }
 
 // Set Vx = Vy - Vx, set VF = NOT borrow.
-func (c *chip8) subYX(x, y byte) {
+func (c *Chip8) subYX(x, y byte) {
 	c.v[0xF] = 1
 	if c.v[y] < c.v[x] {
 		c.v[0xF] = 0
@@ -236,36 +236,36 @@ func (c *chip8) subYX(x, y byte) {
 }
 
 // Set Vx = Vx SHL 1, set VF = MSB of Vx.
-func (c *chip8) shlVx(x byte) {
+func (c *Chip8) shlVx(x byte) {
 	c.v[0xF] = c.v[x] >> 7
 	c.v[x] <<= 1
 }
 
 // Skip next instruction if Vx != Vy.
-func (c *chip8) skipIfNotVcVy(x, y byte) {
+func (c *Chip8) skipIfNotVcVy(x, y byte) {
 	if c.v[x] != c.v[y] {
 		c.pc += 2
 	}
 }
 
 // Set I = addr.
-func (c *chip8) setI(addr uint16) {
+func (c *Chip8) setI(addr uint16) {
 	c.i = addr
 }
 
 // Jump to addr + V0.
-func (c *chip8) jumpV0(addr uint16) {
+func (c *Chip8) jumpV0(addr uint16) {
 	c.pc = addr + uint16(c.v[0])
 }
 
 // Set Vx = random byte AND kk.
-func (c *chip8) rndVx(x, kk byte) {
+func (c *Chip8) rndVx(x, kk byte) {
 	c.v[x] = byte(c.rand.Intn(256)) & kk
 }
 
 // Display n-byte sprite starting at memory location I at (Vx, Vy), set VF = collision.
 // If the sprite is positioned so part of it is outside the coordinates of the display, it wraps around to the opposite side of the screen
-func (c *chip8) drawSprite(x, y, n byte) {
+func (c *Chip8) drawSprite(x, y, n byte) {
 	sprite := c.memory[c.i : c.i+uint16(n)]
 	posX := c.v[x] % DisplayWidth  // wraps around to the opposite side of the screen
 	posY := c.v[y] % DisplayHeight // wraps around to the opposite side of the screen
@@ -292,27 +292,27 @@ func (c *chip8) drawSprite(x, y, n byte) {
 }
 
 // Skip next instruction if key with the value of Vx is pressed.
-func (c *chip8) skipIfPressed(x byte) {
+func (c *Chip8) skipIfPressed(x byte) {
 	if c.keypad[c.v[x]] {
 		c.pc += 2
 	}
 }
 
 // Skip next instruction if key with the value of Vx is not pressed.
-func (c *chip8) skipIfNotPressed(x byte) {
+func (c *Chip8) skipIfNotPressed(x byte) {
 	if !c.keypad[c.v[x]] {
 		c.pc += 2
 	}
 }
 
 // Set Vx = delay timer value.
-func (c *chip8) setVxDT(x byte) {
+func (c *Chip8) setVxDT(x byte) {
 	c.v[x] = c.dt
 }
 
 // Wait for a key press, store the value of the key in Vx.
 // All execution stops until a key is pressed, then the value of that key is stored in Vx.
-func (c *chip8) setVxKey(x byte) {
+func (c *Chip8) setVxKey(x byte) {
 	for i, k := range c.keypad {
 		if k {
 			c.v[x] = byte(i)
@@ -324,38 +324,38 @@ func (c *chip8) setVxKey(x byte) {
 }
 
 // Set delay timer = Vx.
-func (c *chip8) setDTVx(x byte) {
+func (c *Chip8) setDTVx(x byte) {
 	c.dt = c.v[x]
 }
 
 // Set sound timer = Vx.
-func (c *chip8) setSTVx(x byte) {
+func (c *Chip8) setSTVx(x byte) {
 	c.st = c.v[x]
 }
 
 // Set I = I + Vx.
-func (c *chip8) addIVx(x byte) {
+func (c *Chip8) addIVx(x byte) {
 	c.i += uint16(c.v[x])
 }
 
 // Set I = location of sprite for digit Vx.
-func (c *chip8) setIDigit(x byte) {
+func (c *Chip8) setIDigit(x byte) {
 	c.i = uint16(c.v[x]) * 5
 }
 
 // Store BCD representation of Vx in memory locations I, I+1, and I+2.
-func (c *chip8) bcd(x byte) {
+func (c *Chip8) bcd(x byte) {
 	c.memory[c.i] = c.v[x] / 100
 	c.memory[c.i+1] = (c.v[x] / 10) % 10
 	c.memory[c.i+2] = c.v[x] % 10
 }
 
 // Store registers V0 through Vx in memory starting at location I.
-func (c *chip8) writeRegs(x byte) {
+func (c *Chip8) writeRegs(x byte) {
 	copy(c.memory[c.i:], c.v[:x+1])
 }
 
 // Read registers V0 through Vx from memory starting at location I.
-func (c *chip8) readRegs(x byte) {
+func (c *Chip8) readRegs(x byte) {
 	copy(c.v[:x+1], c.memory[c.i:])
 }

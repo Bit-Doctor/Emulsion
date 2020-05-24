@@ -24,9 +24,9 @@ const (
 	DisplayHeight = 32
 )
 
-// chip8 is based on Cowgod's Chip-8 Technical Reference v1.0
+// Chip8 is based on Cowgod's Chip-8 Technical Reference v1.0
 // Available at http://devernay.free.fr/hacks/chip8/C8TECH10.HTM#1.0
-type chip8 struct {
+type Chip8 struct {
 	// The 4096 bytes of memory.
 	//
 	// Memory Map:
@@ -106,8 +106,8 @@ type chip8 struct {
 }
 
 // New return a fully initialized instance of the CHIP-8 system.
-func New() *chip8 {
-	m := &chip8{
+func New() *Chip8 {
+	m := &Chip8{
 		pc: 0x200,
 		memory: [4096]byte{
 			// Programs may also refer to a group of sprites representing the hexadecimal digits 0 through F.
@@ -137,7 +137,7 @@ func New() *chip8 {
 }
 
 // GetNextFrame takes in an input state run for one frame and return the video and audio data.
-func (c *chip8) GetNextFrame(inputs [16]bool) ([]uint32, []int16, error) {
+func (c *Chip8) GetNextFrame(inputs [16]bool) ([]uint32, []int16, error) {
 	c.keypad = inputs
 
 	if c.dt != 0 {
@@ -162,7 +162,7 @@ func (c *chip8) GetNextFrame(inputs [16]bool) ([]uint32, []int16, error) {
 	return c.mapGraphic(), c.mapAudio(), nil
 }
 
-func (c *chip8) mapGraphic() []uint32 {
+func (c *Chip8) mapGraphic() []uint32 {
 	fb := make([]uint32, DisplayWidth*DisplayHeight)
 	for y, row := range c.display {
 		for x := 0; x < DisplayWidth; x++ {
@@ -177,7 +177,7 @@ func (c *chip8) mapGraphic() []uint32 {
 	return fb
 }
 
-func (c *chip8) mapAudio() []int16 {
+func (c *Chip8) mapAudio() []int16 {
 	const tone = 480.0
 	const deltaPhase = 2 * math.Pi * tone / SamplingRate
 	sb := make([]int16, SamplePerFrame*2)
@@ -197,7 +197,7 @@ func (c *chip8) mapAudio() []int16 {
 
 // LoadGame load game data in the memory.
 // If the data cannot fit in the memory it will return an error.
-func (c *chip8) LoadGame(data []byte) error {
+func (c *Chip8) LoadGame(data []byte) error {
 	if len(data) >= len(c.memory)-int(c.pc) {
 		return errors.New("the ROM cannot fit in memory")
 	}
